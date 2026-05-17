@@ -213,8 +213,7 @@ export default function AboutPage() {
     setScrollY(window.scrollY);
   }, []);
 
-  const handleAnimationComplete = useCallback(() => {
-    console.log("Animation completed");
+ const handleAnimationComplete = useCallback(() => {
   }, []);
 
   useEffect(() => {
