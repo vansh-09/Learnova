@@ -33,6 +33,11 @@ export async function PUT(request) {
       return jsonError("exceptionId is required", 400);
     }
 
+    const validStatuses = ["pending", "approved", "rejected"];
+    if (status && !validStatuses.includes(status)) {
+      return jsonError("Invalid status value", 400);
+    }
+
     const db = await connectDb();
 
     const result = await db.collection("exceptions").updateOne(
