@@ -499,7 +499,7 @@ export function Navbar() {
                     </button>
 
                     {isDropdownOpen && (
-                      <div className="absolute right-0 mt-3 min-w-64 bg-black/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/20 py-2 z-[52]">
+                      <div className="absolute right-0 mt-3 min-w-64 bg-black/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/20 py-2 z-[100] overflow-hidden">
                         {userMenuItems.map(
                           (item) => (
                             <Link
