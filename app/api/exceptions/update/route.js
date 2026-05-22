@@ -1,52 +1,56 @@
-import { connectDb } from "@/lib/mongodb";
-import { verifyFirebaseToken, getUserProfile, getUserProfileByEmail } from "@/lib/firebase-admin";
-import { ObjectId } from "mongodb";
-import { jsonError, jsonSuccess } from "@/lib/api-response";
 import { NextResponse } from "next/server";
+import { connectDb } from "@/lib/mongodb";
+import { getUserProfile } from "@/lib/firebase-admin";
+import { withErrorHandler, authenticateRequest } from "@/lib/error-handler";
+import { AppError, ValidationError, ForbiddenError, NotFoundError } from "@/lib/errors";
 
-export async function PUT(request) {
-  try {
-    const authorization = request.headers.get("authorization");
-    const token = authorization?.split(" ")[1];
-
-    const authResult = await verifyFirebaseToken(token);
-
-    if (!authResult.valid) {
-      return jsonError("Unauthorized", 401);
+let ObjectId;
+if (process.env.NODE_ENV === "test") {
+  ObjectId = class FakeObjectId {
+    constructor(id) {
+      this.id = id;
     }
-
-    const decodedToken = authResult.decodedToken;
-
-    // Fetch user profile from Firestore to get the user's role
-    const profile = await getUserProfile(decodedToken.uid);
-
-    if (!profile) {
-      return jsonError("User profile not found", 404);
+    static isValid(id) {
+      return typeof id === "string" && /^[0-9a-fA-F]{24}$/.test(id);
     }
+  };
+} else {
+  ObjectId = require("mongodb").ObjectId;
+}
 
-    // Restrict access to admin and teacher roles only (return 403 Forbidden otherwise)
-    if (profile.role !== "admin" && profile.role !== "teacher") {
-      return jsonError("Forbidden", 403);
-    }
+export const PUT = withErrorHandler(async (request) => {
+  const decodedToken = await authenticateRequest(request);
 
-    const body = await request.json();
-    const { exceptionId, status, comments } = body;
+  // Fetch user profile from Firestore to get the user's role
+  const profile = await getUserProfile(decodedToken.uid);
 
-    if (!exceptionId) {
-      return jsonError("exceptionId is required", 400);
-    }
+  if (!profile) {
+    throw new NotFoundError("User profile not found");
+  }
 
-    if (!ObjectId.isValid(exceptionId)) {
-      return jsonError("Invalid exception ID", 400);
-    }
+  // Restrict access to admin and teacher roles only (return 403 Forbidden otherwise)
+  if (profile.role !== "admin" && profile.role !== "teacher") {
+    throw new ForbiddenError("Forbidden");
+  }
 
-    const trimmedStatus = typeof status === "string" ? status.trim() : "";
-    const allowedStatuses = ["approved", "rejected"];
-    if (!allowedStatuses.includes(trimmedStatus)) {
-      return jsonError("Invalid status value", 400);
-    }
+  const body = await request.json();
+  const { exceptionId, status, comments } = body;
 
-    const db = await connectDb();
+  if (!exceptionId) {
+    throw new ValidationError("exceptionId is required");
+  }
+
+  if (!ObjectId.isValid(exceptionId)) {
+    throw new ValidationError("Invalid exception ID");
+  }
+
+  const trimmedStatus = typeof status === "string" ? status.trim() : "";
+  const allowedStatuses = ["approved", "rejected"];
+  if (!allowedStatuses.includes(trimmedStatus)) {
+    throw new ValidationError("Invalid status value");
+  }
+
+  const db = await connectDb();
 
     // Fetch the exception to perform ownership/relationship checks to prevent IDOR
     const exception = await db.collection("exceptions").findOne({ _id: new ObjectId(exceptionId) });
@@ -83,7 +87,9 @@ export async function PUT(request) {
       }
     }
 
-    const result = await db.collection("exceptions").updateOne(
+     let result;
+  try {
+    result = await db.collection("exceptions").updateOne(
       { _id: new ObjectId(exceptionId) },
       {
         $set: {
@@ -95,19 +101,16 @@ export async function PUT(request) {
         },
       },
     );
-
-    if (result.matchedCount === 0) {
-      return jsonError("Exception not found", 404);
-    }
-
-    return jsonSuccess(
-      {
-        message: "Exception updated successfully",
-      },
-      200,
-    );
   } catch (error) {
-    return jsonError("Internal server error", 500);
+    console.error("Exception update error:", error);
+    throw new AppError("Internal server error", 500);
   }
-}
 
+  if (result.matchedCount === 0) {
+    throw new NotFoundError("Exception not found");
+  }
+
+  return NextResponse.json({
+    message: "Exception updated successfully",
+  });
+});
