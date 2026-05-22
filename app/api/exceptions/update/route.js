@@ -1,50 +1,84 @@
 import { connectDb } from "@/lib/mongodb";
-import { verifyFirebaseToken } from "@/lib/firebase-admin";
+import { verifyFirebaseToken, getUserProfile } from "@/lib/firebase-admin";
 import { ObjectId } from "mongodb";
+import { jsonError, jsonSuccess } from "@/lib/api-response";
 
 export async function PUT(request) {
   try {
-    // Get the authorization header
     const authorization = request.headers.get("authorization");
     const token = authorization?.split(" ")[1];
 
-    // Verify Firebase token
-    const decodedToken = await verifyFirebaseToken(token);
+    const authResult = await verifyFirebaseToken(token);
 
-    if (!decodedToken) {
-      return Response.json({ message: "Unauthorized" }, { status: 401 });
+    if (!authResult.valid) {
+      return NextResponse.json(
+        {
+          error: "Unauthorized",
+          reason: authResult.reason,
+        },
+        { status: 401 }
+      );
     }
 
-    // Parse request body
+    const decodedToken = authResult.decodedToken;
+
+
+    // Fetch user profile from Firestore to get the user's role
+    const profile = await getUserProfile(decodedToken.uid);
+
+    if (!profile) {
+      return jsonError("User profile not found", 404);
+    }
+
+    // Restrict access to admin and teacher roles only (return 403 Forbidden otherwise)
+    if (profile.role !== "admin" && profile.role !== "teacher") {
+      return jsonError("Forbidden", 403);
+    }
+
     const body = await request.json();
     const { exceptionId, status, comments } = body;
 
-    // Connect to database
+    if (!exceptionId) {
+      return jsonError("exceptionId is required", 400);
+    }
+
+    if (!ObjectId.isValid(exceptionId)) {
+      return jsonError("Invalid exception ID", 400);
+    }
+
+    const trimmedStatus = typeof status === "string" ? status.trim() : "";
+    const allowedStatuses = ["approved", "rejected"];
+    if (!allowedStatuses.includes(trimmedStatus)) {
+      return jsonError("Invalid status value", 400);
+    }
+
     const db = await connectDb();
 
     const result = await db.collection("exceptions").updateOne(
       { _id: new ObjectId(exceptionId) },
       {
         $set: {
-          status,
+          status: trimmedStatus,
           comments,
           reviewedBy: decodedToken.email,
           reviewedAt: new Date(),
           updatedAt: new Date(),
         },
-      }
+      },
     );
 
     if (result.matchedCount === 0) {
-      return Response.json({ message: "Exception not found" }, { status: 404 });
+      return jsonError("Exception not found", 404);
     }
 
-    return Response.json(
-      { message: "Exception updated successfully" },
-      { status: 200 }
+    return jsonSuccess(
+      {
+        message: "Exception updated successfully",
+      },
+      200,
     );
   } catch (error) {
     console.error("Exception update error:", error);
-    return Response.json({ message: "Internal server error" }, { status: 500 });
+    return jsonError("Internal server error", 500);
   }
 }

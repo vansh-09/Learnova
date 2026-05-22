@@ -467,45 +467,29 @@ const SmartNoticeBoard = () => {
             </div>
 
             {/* Notices List */}
-            <div className="space-y-4">
-              {notices.length === 0 ? (
-                <div className="text-center py-20 animate-fadeIn">
-                  <div className="w-20 h-20 bg-gradient-to-br from-gray-800 to-gray-900 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl border border-gray-700">
-                    <BellOff className="w-10 h-10 text-gray-500 animate-pulse" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-2">
-                    No notices yet
-                  </h3>
-                  <p className="text-gray-400 max-w-xs mx-auto">
-                    Check back later for updates and announcements from your institution.
-                  </p>
-                </div>
-              ) : filteredNotices.length === 0 ? (
-                <div className="text-center py-20">
-                  <div className="w-16 h-16 bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Bell className="w-8 h-8 text-gray-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-400 mb-2">
-                    No matching notices
-                  </h3>
-                  <p className="text-gray-500">
-                    Try adjusting your search or filters to find what you're looking for.
-                  </p>
-                </div>
-              ) : (
-                filteredNotices.map((notice) => {
-                  const isRead = readNotices.has(notice.id);
-                  const priorityStyle = priorityConfig[notice.priority];
+<div className="space-y-4">
+  {filteredNotices.length === 0 ? (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <BellOff className="w-14 h-14 text-gray-500 mb-4" />
 
-                  return (
-                    <div
-                      key={notice.id}
-                      className={`group relative bg-black/40 backdrop-blur-sm border rounded-2xl p-6 transition-all duration-300 hover:scale-[1.01] hover:shadow-2xl ${
-                        isRead
-                          ? "border-gray-600"
-                          : "border-accent/50 shadow-lg shadow-accent/10"
-                      }`}
-                    >
+      <p className="text-lg font-medium text-gray-300">
+        No notices yet. Check back later.
+      </p>
+    </div>
+  ) : (
+    filteredNotices.map((notice) => {
+      const isRead = readNotices.has(notice.id);
+      const priorityStyle = priorityConfig[notice.priority];
+
+      return (
+        <div
+          key={notice.id}
+          className={`group relative bg-black/40 backdrop-blur-sm border rounded-2xl p-6 transition-all duration-300 hover:scale-[1.01] hover:shadow-2xl ${
+            isRead
+              ? "border-gray-600"
+              : "border-accent/50 shadow-lg shadow-accent/10"
+          }`}
+        >
                       {/* Pinned Indicator */}
                       {notice.isPinned && (
                         <div className="absolute top-4 right-4">

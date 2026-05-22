@@ -6,10 +6,19 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   sendEmailVerification,
+  signOut,
+  
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
-import { createUserProfile, getErrorMessage } from "@/utils/authUtils";
+import {
+  createUserProfile,
+  getErrorMessage,
+  validatePasswordStrength,
+} from "@/utils/authUtils";
 import { ROLE_CONFIG } from "@/constants/userRoles";
+
+const FIREBASE_CONFIG_ERROR =
+  "Firebase is not configured. Please add your Firebase environment variables to .env.local and restart the development server.";
 
 /**
  * Authenticates a user using email and password credentials.
@@ -20,6 +29,10 @@ import { ROLE_CONFIG } from "@/constants/userRoles";
  */
 export const loginWithEmail = async (email, password, selectedRole) => {
   try {
+    if (!auth || !db) {
+      return { success: false, error: FIREBASE_CONFIG_ERROR };
+    }
+
     const userCredential = await signInWithEmailAndPassword(
       auth,
       email.trim(),
@@ -39,7 +52,7 @@ export const loginWithEmail = async (email, password, selectedRole) => {
 
       // Check if role matches selected role
       if (userData.role !== selectedRole) {
-        await auth.signOut();
+        await signOut(auth);
         return {
           success: false,
           error: `This account is registered as ${
@@ -87,6 +100,15 @@ export const signupWithEmail = async (
   additionalData
 ) => {
   try {
+    if (!auth || !db) {
+      return { success: false, error: FIREBASE_CONFIG_ERROR };
+    }
+
+    const passwordError = validatePasswordStrength(password);
+    if (passwordError) {
+      return { success: false, error: passwordError };
+    }
+
     const userCredential = await createUserWithEmailAndPassword(
       auth,
       email.trim(),
@@ -128,6 +150,10 @@ export const loginWithGoogle = async (
   additionalData = {}
 ) => {
   try {
+    if (!auth || !db) {
+      return { success: false, error: FIREBASE_CONFIG_ERROR };
+    }
+
     const provider = new GoogleAuthProvider();
     const userCredential = await signInWithPopup(auth, provider);
     const user = userCredential.user;
@@ -138,7 +164,8 @@ export const loginWithGoogle = async (
     if (!userDoc.exists()) {
       if (isLogin) {
         // New Google user trying to login - need to sign up first
-        await auth.signOut();
+        // ✅ modular style
+        await signOut(auth);
         return {
           success: false,
           error: "Account not found. Please sign up first.",
@@ -147,7 +174,8 @@ export const loginWithGoogle = async (
         // New Google user signing up - create profile with selected role
         const nameToUse = user.displayName || additionalData.fullName?.trim();
         if (!nameToUse) {
-          await auth.signOut();
+          // ✅ modular style
+          await signOut(auth);
           return {
             success: false,
             error: "Please enter your full name",
@@ -168,7 +196,7 @@ export const loginWithGoogle = async (
 
     // For existing users, check if role matches selected role (for login)
     if (isLogin && userData && userData.role !== selectedRole) {
-      await auth.signOut();
+      await signOut(auth);
       return {
         success: false,
         error: `This account is registered as ${
@@ -207,6 +235,10 @@ export const loginWithGoogle = async (
  */
 export const resetPassword = async (email) => {
   try {
+    if (!auth) {
+      return { success: false, error: FIREBASE_CONFIG_ERROR };
+    }
+
     await sendPasswordResetEmail(auth, email);
     return { success: true };
   } catch (err) {
