@@ -365,17 +365,6 @@ const unreadCount = notifications.filter(n => !n.read).length;
                       </span>
                     </Link>
                   </Button>
-//                   {process.env.NODE_ENV === "development" && (
-//                     <Button 
-//                       onClick={handleTestNotification} 
-//                       variant="outline" 
-//                       size="sm" 
-//                       className="border-dashed border-yellow-500 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-500/10 transition-all"
-//                     >
-//                       Test Notification
-//                     </Button>
-//                   )}
-
                   {/* Notifications */}
                   <div className="relative">
                     <button
