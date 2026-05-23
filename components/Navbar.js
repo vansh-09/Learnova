@@ -47,9 +47,40 @@ export function Navbar() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [prefersDark, setPrefersDark] = useState(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const saved = localStorage.getItem("theme");
+      if (saved === "light") return false;
+      if (saved === "dark") return true;
+      return (
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches
+      );
+    } catch (e) {
+      return null;
+    }
+  });
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Detect system preference on mount so initial render matches user's OS
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const mq = window.matchMedia("(prefers-color-scheme: dark)");
+      const update = (e) => setPrefersDark(e.matches);
+      if (mq.addEventListener) mq.addEventListener("change", update);
+      else mq.addListener && mq.addListener(update);
+      return () => {
+        if (mq.removeEventListener) mq.removeEventListener("change", update);
+        else mq.removeListener && mq.removeListener(update);
+      };
+    } catch (e) {
+      // ignore
+    }
   }, []);
 
   const scrollProgressValue = Number.isFinite(scrollProgress) ? scrollProgress : 0;
@@ -194,18 +225,17 @@ export function Navbar() {
       <nav
         className="fixed w-full top-0 left-0 right-0 z-[70] transition-all duration-300 ease-out"
         style={{
-          backgroundColor: !mounted 
-            ? "rgba(255, 255, 255, 0.95)" 
-            : theme === "dark"
-            ? `rgba(0,0,0,${0.82 + scrollProgressValue * 0.12})`
-            : `rgba(255,255,255,0.98)`,
+          // Use resolved theme when mounted; otherwise fall back to system preference
+          backgroundColor:
+            (mounted ? theme : prefersDark ? "dark" : "light") === "dark"
+              ? `rgba(0,0,0,${0.82 + scrollProgressValue * 0.12})`
+              : `rgba(255,255,255,0.98)`,
           backdropFilter: `blur(20px)`,
           WebkitBackdropFilter: `blur(20px)`,
-          borderBottom: !mounted 
-            ? "1px solid rgba(0, 0, 0, 0.08)" 
-            : theme === "dark"
-            ? `1px solid rgba(255,255,255,0.1)`
-            : `1px solid rgba(0,0,0,0.08)`,
+          borderBottom:
+            (mounted ? theme : prefersDark ? "dark" : "light") === "dark"
+              ? `1px solid rgba(255,255,255,0.1)`
+              : `1px solid rgba(0,0,0,0.08)`,
         }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
