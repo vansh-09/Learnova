@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import toast from "react-hot-toast";
 import {
   Bell,
   BellOff,
@@ -54,160 +56,76 @@ const SmartNoticeBoard = () => {
     return user?.uid || user?.id || "anonymous";
   };
 
-  // Mock notices data
-  const mockNotices = useMemo(
-    () => [
-      {
-        id: 1,
-        title: "New Course Registration Opens",
-        content:
-          "Registration for Fall 2024 semester courses is now open. Students can register through the portal until September 30th, 2024.",
-        category: "academic",
-        priority: "high",
-        author: "Academic Office",
-        authorRole: "admin",
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-        isPinned: true,
-        tags: ["registration", "courses", "deadline"],
-        targetAudience: ["student", "teacher"],
-      },
-      {
-        id: 2,
-        title: "Library Hours Extended",
-        content:
-          "Library will now be open until 10 PM on weekdays starting October 1st. Additional study spaces have been added on the second floor.",
-        category: "general",
-        priority: "medium",
-        author: "Library Administration",
-        authorRole: "staff",
-        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-        isPinned: false,
-        tags: ["library", "hours", "study"],
-        targetAudience: ["student", "teacher", "staff"],
-      },
-      {
-        id: 3,
-        title: "Scholarship Application Deadline",
-        content:
-          "Merit-based scholarship applications are due by October 15th. Apply early to ensure your application is processed on time.",
-        category: "financial",
-        priority: "high",
-        author: "Financial Aid Office",
-        authorRole: "admin",
-        createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
-        isPinned: true,
-        tags: ["scholarship", "financial-aid", "deadline"],
-        targetAudience: ["student"],
-      },
-      {
-        id: 4,
-        title: "Faculty Meeting Rescheduled",
-        content:
-          "The monthly faculty meeting has been moved from October 5th to October 8th at 2 PM in Conference Room A.",
-        category: "administrative",
-        priority: "medium",
-        author: "Dean's Office",
-        authorRole: "admin",
-        createdAt: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
-        isPinned: false,
-        tags: ["meeting", "faculty", "schedule-change"],
-        targetAudience: ["teacher", "admin"],
-      },
-      {
-        id: 5,
-        title: "New AI Lab Equipment",
-        content:
-          "The Computer Science department has received new AI workstations. Students can book time slots starting next week.",
-        category: "academic",
-        priority: "low",
-        author: "CS Department",
-        authorRole: "teacher",
-        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-        isPinned: false,
-        tags: ["equipment", "AI", "computer-science"],
-        targetAudience: ["student", "teacher"],
-      },
-      {
-        id: 6,
-        title: "Campus WiFi Maintenance",
-        content:
-          "Campus WiFi will be temporarily unavailable on October 10th from 2 AM to 4 AM for scheduled maintenance.",
-        category: "technical",
-        priority: "medium",
-        author: "IT Department",
-        authorRole: "staff",
-        createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000), // 12 hours ago
-        isPinned: false,
-        tags: ["wifi", "maintenance", "downtime"],
-        targetAudience: ["student", "teacher", "staff", "admin"],
-      },
-    ],
-    []
-  );
-
-  const categories = [
-    { id: "all", label: "All Notices", icon: Bell },
-    { id: "academic", label: "Academic", icon: GraduationCap },
-    { id: "administrative", label: "Administrative", icon: Settings },
-    { id: "financial", label: "Financial", icon: TrendingUp },
-    { id: "general", label: "General", icon: Users },
-    { id: "technical", label: "Technical", icon: BookOpen },
-  ];
-
-  const priorityConfig = {
-    high: {
-      color: "from-red-500 to-pink-500",
-      bg: "bg-red-500/10",
-      text: "text-red-400",
-      border: "border-red-500/30",
-    },
-    medium: {
-      color: "from-yellow-500 to-orange-500",
-      bg: "bg-yellow-500/10",
-      text: "text-yellow-400",
-      border: "border-yellow-500/30",
-    },
-    low: {
-      color: "from-green-500 to-emerald-500",
-      bg: "bg-green-500/10",
-      text: "text-green-400",
-      border: "border-green-500/30",
-    },
-  };
-
-  // Initialize notices and read status
+  // Connect to Realtime SSE Stream
   useEffect(() => {
-    if (user) {
-      // Filter notices based on user role
-      const userRole = getUserRole();
-      const userRelevantNotices = mockNotices.filter((notice) =>
-        notice.targetAudience.includes(userRole)
-      );
-
-      setNotices(userRelevantNotices);
+    if (!user) {
       setLoading(false);
+      return;
+    }
 
-      // Load read notices from localStorage (defensive parsing)
-      const userId = getUserId();
-      const savedReadNotices = localStorage.getItem(`readNotices_${userId}`);
-      if (savedReadNotices) {
+    let eventSource;
+    let reconnectTimeout;
+    
+    const connectSSE = () => {
+      eventSource = new EventSource("/api/notices/stream");
+
+      eventSource.addEventListener("initial", (e) => {
         try {
-          const parsed = JSON.parse(savedReadNotices);
-          if (Array.isArray(parsed)) {
-            setReadNotices(new Set(parsed));
+          const data = JSON.parse(e.data);
+          setNotices(data);
+          setLoading(false);
+        } catch (err) {
+          console.error("Failed to parse initial notices", err);
+        }
+      });
+
+      eventSource.addEventListener("new-notice", (e) => {
+        try {
+          const newNotice = JSON.parse(e.data);
+          setNotices((prev) => {
+            // Prevent duplicates
+            if (prev.find(n => n.id === newNotice.id)) return prev;
+            return [newNotice, ...prev];
+          });
+          
+          if (newNotice.priority === "high") {
+             toast(`High Priority: ${newNotice.title}`, { icon: '🚨', duration: 5000 });
           } else {
-            // If stored value is malformed, remove it
-            localStorage.removeItem(`readNotices_${userId}`);
+             toast.success(`New Notice: ${newNotice.title}`);
           }
         } catch (err) {
-          console.error("Failed to parse read notices from localStorage:", err);
-          localStorage.removeItem(`readNotices_${userId}`);
+          console.error("Failed to parse new notice", err);
         }
+      });
+
+      eventSource.onerror = (e) => {
+        console.error("SSE Connection dropped. Reconnecting in 5s...");
+        eventSource.close();
+        reconnectTimeout = setTimeout(connectSSE, 5000);
+      };
+    };
+
+    connectSSE();
+
+    // Load read notices from localStorage
+    const userId = getUserId();
+    const savedReadNotices = localStorage.getItem(`readNotices_${userId}`);
+    if (savedReadNotices) {
+      try {
+        const parsed = JSON.parse(savedReadNotices);
+        if (Array.isArray(parsed)) {
+          setReadNotices(new Set(parsed));
+        }
+      } catch (err) {
+        localStorage.removeItem(`readNotices_${userId}`);
       }
-    } else {
-      setLoading(false);
     }
-  }, [mockNotices, user]);
+
+    return () => {
+      if (eventSource) eventSource.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    };
+  }, [user]);
 
   // Filter notices based on search, category, and read status
   useEffect(() => {
@@ -479,23 +397,34 @@ const SmartNoticeBoard = () => {
 
             {/* Notices List */}
 <div className="space-y-4">
+  <AnimatePresence mode="popLayout">
   {filteredNotices.length === 0 ? (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      className="flex flex-col items-center justify-center py-20 text-center"
+    >
       <BellOff className="w-14 h-14 text-gray-500 mb-4" />
 
       <p className="text-lg font-medium text-gray-300">
         No notices yet. Check back later.
       </p>
-    </div>
+    </motion.div>
   ) : (
     filteredNotices.map((notice) => {
       const isRead = readNotices.has(notice.id);
       const priorityStyle = priorityConfig[notice.priority];
 
       return (
-        <div
-          key={`${notice.id}-${selectedCategory}-${showOnlyUnread}`}
-          className={`group relative bg-black/40 backdrop-blur-sm border rounded-2xl p-4 sm:p-6 transition-all duration-300 hover:scale-[1.01] hover:shadow-2xl animate-fade-in-up ${
+        <motion.div
+          layout
+          initial={{ opacity: 0, y: -20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+          transition={{ duration: 0.4, type: "spring", bounce: 0.3 }}
+          key={notice.id}
+          className={`group relative bg-black/40 backdrop-blur-sm border rounded-2xl p-4 sm:p-6 transition-colors duration-300 hover:scale-[1.01] hover:shadow-2xl ${
             isRead
               ? "border-gray-600"
               : "border-accent/50 shadow-lg shadow-accent/10"
@@ -600,10 +529,11 @@ const SmartNoticeBoard = () => {
                       {!isRead && notice.priority === "high" && (
                         <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-pink-500/10 rounded-2xl -z-10 blur-xl pointer-events-none opacity-50 sm:opacity-100" />
                       )}
-                    </div>
+                    </motion.div>
                   );
                 })
               )}
+  </AnimatePresence>
             </div>
           </>
         )}
