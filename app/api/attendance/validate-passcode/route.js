@@ -5,11 +5,25 @@ import { requireRole } from "@/lib/rbac";
 import { ValidationError } from "@/lib/errors";
 import { initializeFirebase } from "@/lib/firebase-admin";
 import admin from "firebase-admin";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
 export const POST = withErrorHandler(async (request) => {
-  await requireAuth(request);
+  const decodedToken = await requireAuth(request);
+
+  const ip = request.headers.get("x-forwarded-for") || "127.0.0.1";
+  const rateLimitResult = await checkRateLimit(`passcode_${ip}_${decodedToken?.uid}`);
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { valid: false, error: "Too many attempts. Please try again later." },
+      { status: 429 }
+    );
+  }
+
+  // Initialize Firebase app to prevent cold-start crashes
+  initializeFirebase();
 
   const { passcode } = await request.json();
 
