@@ -3,22 +3,22 @@
     "username": "Premshaw23",
     "name": "Prem Shaw",
     "admin": true,
-    "contributions": 615
+    "contributions": 645
   },
   {
     "username": "Prateek2007-cmd",
-    "contributions": 32
+    "contributions": 36
   },
   {
     "username": "RUSHILPATEL33",
-    "contributions": 31
-  },
-  {
-    "username": "sricharan-213",
-    "contributions": 24
+    "contributions": 33
   },
   {
     "username": "Hrithik-ui753",
+    "contributions": 26
+  },
+  {
+    "username": "sricharan-213",
     "contributions": 24
   },
   {
@@ -34,6 +34,10 @@
     "contributions": 17
   },
   {
+    "username": "Pratyush-Panda-2006",
+    "contributions": 17
+  },
+  {
     "username": "pranav-cholleti",
     "contributions": 17
   },
@@ -42,20 +46,20 @@
     "contributions": 16
   },
   {
-    "username": "Pratyush-Panda-2006",
-    "contributions": 16
+    "username": "mrdeyroy",
+    "contributions": 12
+  },
+  {
+    "username": "Sandeep6135",
+    "contributions": 11
   },
   {
     "username": "pithva007",
     "contributions": 11
   },
   {
-    "username": "mrdeyroy",
-    "contributions": 11
-  },
-  {
-    "username": "Sandeep6135",
-    "contributions": 11
+    "username": "NiranjanDoijode23",
+    "contributions": 10
   },
   {
     "username": "pragya0129",
@@ -66,16 +70,12 @@
     "contributions": 9
   },
   {
-    "username": "advikdivekar",
+    "username": "Divyanshu227",
     "contributions": 8
   },
   {
-    "username": "NiranjanDoijode23",
-    "contributions": 7
-  },
-  {
-    "username": "Divyanshu227",
-    "contributions": 6
+    "username": "advikdivekar",
+    "contributions": 8
   },
   {
     "username": "thevaibhavtyagi",
@@ -83,6 +83,10 @@
   },
   {
     "username": "Nihal-Reddy-K",
+    "contributions": 6
+  },
+  {
+    "username": "harshbok69-bit",
     "contributions": 6
   },
   {
@@ -107,10 +111,6 @@
   },
   {
     "username": "Copilot",
-    "contributions": 4
-  },
-  {
-    "username": "harshbok69-bit",
     "contributions": 4
   },
   {
@@ -150,6 +150,10 @@
     "contributions": 3
   },
   {
+    "username": "Asifmd45",
+    "contributions": 3
+  },
+  {
     "username": "hitdepani",
     "contributions": 3
   },
@@ -178,6 +182,22 @@
     "contributions": 2
   },
   {
+    "username": "Vikrant0207",
+    "contributions": 2
+  },
+  {
+    "username": "Subham503",
+    "contributions": 2
+  },
+  {
+    "username": "Shayan-Bhowmik",
+    "contributions": 2
+  },
+  {
+    "username": "Nirmai-06",
+    "contributions": 2
+  },
+  {
     "username": "Ketandora",
     "contributions": 2
   },
@@ -186,67 +206,7 @@
     "contributions": 2
   },
   {
-    "username": "Nirmai-06",
-    "contributions": 2
-  },
-  {
-    "username": "Shayan-Bhowmik",
-    "contributions": 2
-  },
-  {
-    "username": "Subham503",
-    "contributions": 2
-  },
-  {
-    "username": "vedant7007",
-    "contributions": 1
-  },
-  {
-    "username": "lover3123",
-    "contributions": 1
-  },
-  {
-    "username": "shruti-codes-design",
-    "contributions": 1
-  },
-  {
-    "username": "shambhavivartika06-cmyk",
-    "contributions": 1
-  },
-  {
-    "username": "sarthakshruti999-code",
-    "contributions": 1
-  },
-  {
-    "username": "Sagun-Bajpai",
-    "contributions": 1
-  },
-  {
-    "username": "nivedha2025cse-gif",
-    "contributions": 1
-  },
-  {
-    "username": "Kritika200520",
-    "contributions": 1
-  },
-  {
-    "username": "AnxhDarji",
-    "contributions": 1
-  },
-  {
-    "username": "Vikrant0207",
-    "contributions": 1
-  },
-  {
-    "username": "PanditG4303",
-    "contributions": 1
-  },
-  {
-    "username": "Tannie02",
-    "contributions": 1
-  },
-  {
-    "username": "Shrutika-Dahale",
+    "username": "Sanjay452656",
     "contributions": 1
   },
   {
@@ -254,7 +214,55 @@
     "contributions": 1
   },
   {
-    "username": "Sanjay452656",
+    "username": "Shrutika-Dahale",
+    "contributions": 1
+  },
+  {
+    "username": "Tannie02",
+    "contributions": 1
+  },
+  {
+    "username": "PanditG4303",
+    "contributions": 1
+  },
+  {
+    "username": "AnxhDarji",
+    "contributions": 1
+  },
+  {
+    "username": "Kritika200520",
+    "contributions": 1
+  },
+  {
+    "username": "nivedha2025cse-gif",
+    "contributions": 1
+  },
+  {
+    "username": "riddhimagupta2",
+    "contributions": 1
+  },
+  {
+    "username": "Sagun-Bajpai",
+    "contributions": 1
+  },
+  {
+    "username": "sarthakshruti999-code",
+    "contributions": 1
+  },
+  {
+    "username": "shambhavivartika06-cmyk",
+    "contributions": 1
+  },
+  {
+    "username": "shruti-codes-design",
+    "contributions": 1
+  },
+  {
+    "username": "lover3123",
+    "contributions": 1
+  },
+  {
+    "username": "vedant7007",
     "contributions": 1
   },
   {
@@ -278,6 +286,10 @@
     "contributions": 1
   },
   {
+    "username": "KRUSHAL2956",
+    "contributions": 1
+  },
+  {
     "username": "Hussain053",
     "contributions": 1
   },
@@ -286,7 +298,15 @@
     "contributions": 1
   },
   {
+    "username": "Bhavex",
+    "contributions": 1
+  },
+  {
     "username": "atul-upadhyay-7",
+    "contributions": 1
+  },
+  {
+    "username": "ARCHITVARMA15",
     "contributions": 1
   },
   {
@@ -299,6 +319,10 @@
   },
   {
     "username": "Achiever199",
+    "contributions": 1
+  },
+  {
+    "username": "pratyuxxhh",
     "contributions": 1
   }
 ]

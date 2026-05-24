@@ -22,6 +22,7 @@ import {
   Clock,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { useTheme } from "next-themes";
 
 import { useAuthContext } from "@/contexts/AuthContext";
 
@@ -292,15 +293,17 @@ const LearnovaChatbot = () => {
     timestamp: new Date(),
   };
 
+  const { theme, resolvedTheme, setTheme } = useTheme();
+  const isDarkMode = resolvedTheme === "dark" || theme === "dark";
+
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(true);
   const [messages, setMessages] = useState([INITIAL_MESSAGE]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [currentCategory, setCurrentCategory] = useState("general");
 
-  const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const textareaRef = useRef(null);
 
   useEffect(() => {
@@ -309,10 +312,15 @@ const LearnovaChatbot = () => {
     }
   }, [inputMessage]);
 
-  // Auto scroll
+  // Auto scroll within the chat panel only (avoid scrolling the page)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (!isOpen || isMinimized) return;
+
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }, [messages, isOpen, isMinimized]);
 
   // Auto-resize textarea
   const handleInputChange = (e) => {
@@ -438,8 +446,8 @@ const LearnovaChatbot = () => {
   // ---------------------------------------------------------------------------
   return (
     <div
-      className={`fixed bottom-6 right-6 z-50 flex flex-col ${t.bg} rounded-xl shadow-2xl transition-all duration-300 border ${t.border} ${
-        isMinimized ? "w-72 h-16 overflow-hidden" : "w-96 h-[660px]"
+      className={`fixed z-50 flex flex-col ${t.bg} shadow-2xl transition-all duration-300 border ${t.border} ${
+        isMinimized ? "bottom-6 right-6 w-72 h-16 overflow-hidden rounded-xl" : "bottom-0 right-0 w-full h-full rounded-none sm:bottom-6 sm:right-6 sm:w-96 sm:h-[660px] sm:rounded-xl"
       }`}
     >
       {/* ── Header ─────────────────────────────────────────────────────────── */}
@@ -461,14 +469,14 @@ const LearnovaChatbot = () => {
           <button onClick={clearChat} className="hover:bg-white/20 p-2 rounded-lg transition-colors" title="Clear chat">
             <RefreshCw size={16} />
           </button>
-          <button onClick={() => setIsDarkMode(!isDarkMode)} className="hover:bg-white/20 p-2 rounded-lg transition-colors" title="Toggle theme">
+          <button onClick={() => setTheme(isDarkMode ? "light" : "dark")} className="hover:bg-white/20 p-2 rounded-lg transition-colors" title="Toggle theme">
             {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
           </button>
           <button onClick={() => setIsMinimized(!isMinimized)} className="hover:bg-white/20 p-2 rounded-lg transition-colors" title={isMinimized ? "Expand" : "Minimize"}>
             {isMinimized ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
           </button>
-          <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-2 rounded-lg transition-colors" title="Close">
-            <X size={16} />
+          <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-2 sm:p-2 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" title="Close" aria-label="Close chat">
+            <X size={20} className="sm:w-4 sm:h-4" />
           </button>
         </div>
       </div>
@@ -495,7 +503,10 @@ const LearnovaChatbot = () => {
           </div>
 
           {/* ── Messages Area ─────────────────────────────────────────────── */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-4 scrollbar-none">
+          <div
+            ref={messagesContainerRef}
+            className="flex-1 overflow-y-auto p-3 space-y-4 scrollbar-none"
+          >
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -575,7 +586,6 @@ const LearnovaChatbot = () => {
               </div>
             )}
 
-            <div ref={messagesEndRef} />
           </div>
 
           {/* ── Quick Contact Bar ─────────────────────────────────────────── */}

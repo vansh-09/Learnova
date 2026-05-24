@@ -8,6 +8,7 @@ import { recordAttendance } from "@/services/attendanceService";
 import { analytics } from "@/lib/firebaseConfig";
 import { logEvent } from "firebase/analytics";
 import { getAverageEAR } from "@/utils/livenessUtils";
+import { syncAttendanceQueue } from "@/lib/syncService";
 
 const MIN_CONFIDENCE_TO_RECORD = 60;
 const EAR_THRESHOLD = 0.25;
@@ -56,6 +57,32 @@ export default function FaceRecognizer({ authUser }) {
   const [livenessState, setLivenessState] = useState("IDLE");
   const [blinkPrompt, setBlinkPrompt] = useState("");
 
+  const [isOffline, setIsOffline] = useState(
+    typeof window !== "undefined" ? !navigator.onLine : false
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleOnline = () => {
+      setIsOffline(false);
+      // Automatically attempt to sync local outbox records when we go online
+      syncAttendanceQueue();
+    };
+    
+    const handleOffline = () => {
+      setIsOffline(true);
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
   const MODEL_URL = "/models";
   const labels = fetchedLabels;
 
@@ -103,6 +130,7 @@ export default function FaceRecognizer({ authUser }) {
       setFinished(false);
       setAttendanceState("idle");
     } catch (err) {
+      setIsLoading(false);
       if (err.name === "NotAllowedError") {
         setMessage("Camera access is blocked! Enable camera permissions in browser settings.");
       } else {
@@ -258,9 +286,12 @@ export default function FaceRecognizer({ authUser }) {
     lastDetectionTime.current = now;
 
     const canvas = canvasRef.current;
+    
+    // Fix: Use getBoundingClientRect to match responsive Tailwind w-full scaling on mobile screens
+    const rect = video.getBoundingClientRect();
     const displaySize = {
-      width: video.videoWidth || 720,
-      height: video.videoHeight || 500,
+      width: rect.width || video.videoWidth || 720,
+      height: rect.height || video.videoHeight || 500,
     };
 
     canvas.width = displaySize.width;
@@ -423,7 +454,12 @@ export default function FaceRecognizer({ authUser }) {
           confidenceScore: confidence,
         });
 
-        setAttendanceState(result.alreadyRecorded ? "already-recorded" : "saved");
+        if (result.queuedOffline) {
+          setAttendanceState("queued-offline");
+          setMessage("Attendance cached offline. Waiting for network sync... ✅");
+        } else {
+          setAttendanceState(result.alreadyRecorded ? "already-recorded" : "saved");
+        }
       } catch (err) {
         setAttendanceState("error");
         setMessage(err.message || "Could not save attendance.");
@@ -435,6 +471,22 @@ export default function FaceRecognizer({ authUser }) {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white p-4 relative">
+      {/* Offline Alert Banner */}
+      {isOffline && (
+        <div className="w-full max-w-4xl mb-4 bg-amber-500/10 backdrop-blur-md border border-amber-500/20 rounded-2xl p-4 flex items-center justify-between shadow-lg shadow-amber-500/5 animate-in fade-in slide-in-from-top-4 duration-300 relative z-50">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl animate-pulse">📡</span>
+            <div className="text-left">
+              <h4 className="font-bold text-amber-400 text-sm">Offline Mode Active</h4>
+              <p className="text-xs text-gray-300">Scans will be saved securely to local IndexedDB storage and synced automatically once connection is restored.</p>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-full whitespace-nowrap">
+            indexedDB Queue
+          </span>
+        </div>
+      )}
+
       <div className="relative w-full max-w-4xl rounded-xl overflow-hidden shadow-2xl border border-white/10 backdrop-blur-xl bg-white/5">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-transparent to-blue-500/10 rounded-xl" />
         
@@ -533,6 +585,16 @@ export default function FaceRecognizer({ authUser }) {
             <p className="text-center text-sm font-medium text-amber-300">
               You have already checked in today.
             </p>
+          )}
+          {attendanceState === "queued-offline" && (
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3.5 text-center space-y-1">
+              <p className="text-blue-300 font-semibold text-sm">
+                Attendance saved offline.
+              </p>
+              <p className="text-xs text-gray-300">
+                Will sync automatically when connection is restored.
+              </p>
+            </div>
           )}
         </div>
       )}
